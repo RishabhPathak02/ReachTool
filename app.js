@@ -104,7 +104,7 @@ app.get("/instagram/:username", async (req, res) => {
     const count = recent.length;
     const avgLikes = count ? Math.round(totalLikes / count) : 0;
     const avgComments = count ? Math.round(totalComments / count) : 0;
-    const avgReach = count ? ((totalViews+totalComments+totalLikes) / count / 1e6).toFixed(2) + 'M' : "0M";
+    const avgReach = count ? ((totalViews) / count / 1e6).toFixed(2) + 'M' : "0M";
 
     const engagement = followers && count
       ? (((totalLikes + totalComments) / (followers * count)) * 100).toFixed(2)
@@ -193,7 +193,7 @@ app.get("/download/csv", async (req, res) => {
         if (count > 0 && followers > 0) {
           avgLikes = Math.round(totalLikes / count);
           avgComments = Math.round(totalComments / count);
-          avgReach = ((totalViews+totalComments+totalLikes) / count / 1e6).toFixed(2) + 'M';
+          avgReach = (totalViews/ count / 1e6).toFixed(2) + 'M';
           engagementRate = (((totalLikes + totalComments) / (followers * count)) * 100).toFixed(2) + "%";
         }
       } catch (err) {
