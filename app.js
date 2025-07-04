@@ -70,12 +70,11 @@ app.get("/feature/celebrities", (req, res) => {
     .on("end", () => res.render("features/clebsData", { result: results }))
     .on("error", () => res.status(500).send("Could not read CSV file."));
 });
-
-// Instagram profile fetch for a single user
+// Instagram profile fetch for a single user with avgReach as average view count (in millions)
 app.get("/instagram/:username", async (req, res) => {
   const { username } = req.params;
 
-  const url = `https://graph.facebook.com/v23.0/${igBusinessAccountId}?fields=business_discovery.username(${username}){followers_count,media_count,media{comments_count,like_count,view_count,media_url,caption,timestamp}}&access_token=${accessToken}`;
+  const url = `https://graph.facebook.com/v23.0/${igBusinessAccountId}?fields=business_discovery.username(${username}){followers_count,media_count,media.limit(12){comments_count,like_count,view_count,media_url,caption,timestamp}}&access_token=${accessToken}`;
 
   try {
     const response = await axios.get(url);
@@ -86,34 +85,34 @@ app.get("/instagram/:username", async (req, res) => {
         message: "No data returned for the username.",
       });
     }
+
     const media = data.media?.data || [];
     if (!media.length) {
       return res.render("Reach/error", {
         message: "No recent posts found for this account.",
       });
     }
+
     const recent = media.slice(0, 12);
     const followers = data.followers_count || 0;
     const mediaCount = data.media_count || 0;
 
     const totalLikes = recent.reduce((sum, post) => sum + (post.like_count || 0), 0);
     const totalComments = recent.reduce((sum, post) => sum + (post.comments_count || 0), 0);
+    const totalViews = recent.reduce((sum, post) => sum + (post.view_count || 0), 0);
 
     const count = recent.length;
     const avgLikes = count ? Math.round(totalLikes / count) : 0;
     const avgComments = count ? Math.round(totalComments / count) : 0;
-    const avgReach = avgLikes + avgComments;
+    const avgReach = count ? ((totalViews+totalComments+totalLikes) / count / 1e6).toFixed(2) + 'M' : "0M";
 
     const engagement = followers && count
       ? (((totalLikes + totalComments) / (followers * count)) * 100).toFixed(2)
       : "0.00";
 
     const formatFollowers = (f) =>
-      f >= 1e6
-        ? (f / 1e6).toFixed(2) + "M"
-        : f >= 1e3
-        ? (f / 1e3).toFixed(1) + "K"
-        : f;
+      f >= 1e6 ? (f / 1e6).toFixed(2) + "M" :
+      f >= 1e3 ? (f / 1e3).toFixed(1) + "K" : f;
 
     res.render("Reach/profile", {
       username,
@@ -146,7 +145,8 @@ app.get("/instagram/:username", async (req, res) => {
     });
   }
 });
-// Download CSV endpoint
+
+// Download CSV endpoint with avgReach as average view count (in millions)
 app.get("/download/csv", async (req, res) => {
   const inputFile = path.join(UPLOAD_DIR, "celebs_instagram.csv");
   const outputFile = path.join(OUTPUT_DIR, "instagram_full_report.csv");
@@ -166,14 +166,16 @@ app.get("/download/csv", async (req, res) => {
       let followers = 0,
         mediaCount = 0,
         totalLikes = 0,
-        totalComments = 0;
+        totalComments = 0,
+        totalViews = 0;
+
       let avgLikes = 0,
         avgComments = 0,
-        avgReach = 0,
+        avgReach = "0M",
         engagementRate = "0.00%";
 
       try {
-        const url = `https://graph.facebook.com/v23.0/${igBusinessAccountId}?fields=business_discovery.username(${username}){followers_count,media_count,media{comments_count,like_count}}&access_token=${accessToken}`;
+        const url = `https://graph.facebook.com/v23.0/${igBusinessAccountId}?fields=business_discovery.username(${username}){followers_count,media_count,media.limit(12){comments_count,like_count,view_count}}&access_token=${accessToken}`;
         const response = await axios.get(url);
         const data = response.data.business_discovery;
 
@@ -181,14 +183,17 @@ app.get("/download/csv", async (req, res) => {
         mediaCount = data.media_count || 0;
         const recent = (data.media?.data || []).slice(0, 12);
 
-        totalLikes = recent.reduce((acc, post) => acc + (post.like_count || 0), 0);
-        totalComments = recent.reduce((acc, post) => acc + (post.comments_count || 0), 0);
+        recent.forEach(post => {
+          totalLikes += post.like_count || 0;
+          totalComments += post.comments_count || 0;
+          totalViews += post.view_count || 0;
+        });
 
         const count = recent.length;
         if (count > 0 && followers > 0) {
           avgLikes = Math.round(totalLikes / count);
           avgComments = Math.round(totalComments / count);
-          avgReach = avgLikes + avgComments;
+          avgReach = ((totalViews+totalComments+totalLikes) / count / 1e6).toFixed(2) + 'M';
           engagementRate = (((totalLikes + totalComments) / (followers * count)) * 100).toFixed(2) + "%";
         }
       } catch (err) {
@@ -198,18 +203,12 @@ app.get("/download/csv", async (req, res) => {
         if (code === 403 || message?.includes("limit")) {
           console.warn(`Quota hit at ${username}. Skipping remaining users.`);
           quotaExceeded = true;
-          break; // Stop processing further usernames
+          break;
         }
 
         console.error(`${username} fetch failed:`, err.message);
-        followers =
-          mediaCount =
-          totalLikes =
-          totalComments =
-          avgLikes =
-          avgComments =
-          avgReach =
-            "Error";
+        followers = mediaCount = totalLikes = totalComments = totalViews = avgLikes = avgComments = "Error";
+        avgReach = "Error";
         engagementRate = "Error";
       }
 
@@ -227,7 +226,7 @@ app.get("/download/csv", async (req, res) => {
         `Processed ${username}: Followers=${followers}, MediaCount=${mediaCount}, AvgLikes=${avgLikes}, AvgComments=${avgComments}, AvgReach=${avgReach}, EngagementRate=${engagementRate}`
       );
 
-      await new Promise((r) => setTimeout(r, 1500)); // Slight delay to reduce API pressure
+      await new Promise((r) => setTimeout(r, 1500));
     }
 
     const csvWriter = createCsvWriter({
@@ -238,7 +237,7 @@ app.get("/download/csv", async (req, res) => {
         { id: "mediaCount", title: "Total Posts" },
         { id: "avgLikes", title: "Average Likes" },
         { id: "avgComments", title: "Average Comments" },
-        { id: "avgReach", title: "Average Reach" },
+        { id: "avgReach", title: "Average Reach (Million)" },
         { id: "engagementRate", title: "Engagement Rate (%)" },
       ],
     });
@@ -246,10 +245,7 @@ app.get("/download/csv", async (req, res) => {
     await csvWriter.writeRecords(rows);
 
     res.setHeader("Content-Type", "text/csv");
-    res.setHeader(
-      "Content-Disposition",
-      'attachment; filename="instagram_celebs_report.csv"'
-    );
+    res.setHeader("Content-Disposition", 'attachment; filename="instagram_celebs_report.csv"');
 
     res.download(outputFile, () => {
       if (quotaExceeded) {
@@ -261,8 +257,8 @@ app.get("/download/csv", async (req, res) => {
     res.status(500).send("Failed to generate CSV.");
   }
 });
-
 // Start server
 app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+  console.log(`Server is running on http://localhost:${port}`);
 });
+
