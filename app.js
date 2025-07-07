@@ -148,84 +148,79 @@ app.get("/instagram/:username", async (req, res) => {
   }
 });
 
-app.get("/download/csv", async (req, res) => {
+app.get("/download/csv", (req, res) => {
   const inputFile = path.join(UPLOAD_DIR, "celebs_instagram.csv");
   const outputFile = path.join(OUTPUT_DIR, "instagram_report.csv");
-  const usernames = [], rows = [];
+  const usernames = [];
+  const rows = [];
   let quotaExceeded = false;
 
-  for await (const row of fs.createReadStream(inputFile).pipe(csv())) {
-    row.Username && usernames.push(row.Username.trim());
-  }
+  fs.createReadStream(inputFile)
+    .pipe(csv())
+    .on("data", (row) => {
+      if (row.Username) usernames.push(row.Username.trim());
+    })
+    .on("end", async () => {
+      for (const USER of usernames) {
+        let reels = [], followers = 0, mediaCount = 0, cursor = null;
 
-  for (const USER of usernames) {
-    let reels = [], followers = 0, mediaCount = 0, cursor = null;
+        try {
+          do {
+            const fields = `business_discovery.username(${USER}){followers_count,media_count,media.limit(30){comments_count,like_count,view_count,media_product_type,paging{cursors}}}`;
+            const url = `https://graph.facebook.com/v23.0/${igBusinessAccountId}?fields=${fields}&access_token=${accessToken}`;
+            const resp = await safeApiCall(url);
+            const data = resp.data.business_discovery;
 
-    try {
-      do {
-        const fields = `business_discovery.username(${USER}){followers_count,media_count,media.limit(30){comments_count,like_count,view_count,media_product_type}}`;
-        let url = `https://graph.facebook.com/v23.0/${igBusinessAccountId}?fields=${fields}&access_token=${accessToken}`;
-        if (cursor) url += `&after=${cursor}`;
+            if (!data) throw new Error("No data returned");
+            followers = data.followers_count || 0;
+            mediaCount = data.media_count || 0;
+            const items = data.media?.data || [];
+            reels.push(...items.filter(i => i.media_product_type === "REELS"));
+            reels = reels.slice(0, 12);
+            cursor = data.media?.paging?.cursors?.after;
+          } while (reels.length < 12 && cursor);
 
-        const resp = await safeApiCall(url);
-        const data = resp.data.business_discovery;
-        if (!data) throw new Error("No data returned");
+        } catch (err) {
+          const msg = err?.response?.data?.error?.message?.toLowerCase() || err?.message?.toLowerCase() || "";
+          if (msg.includes("limit") || msg.includes("rate limit") || err.response?.status === 403) quotaExceeded = true;
+        }
 
-        followers = data.followers_count || 0;
-        mediaCount = data.media_count || 0;
-        const items = data.media?.data || [];
+        const cnt = reels.length;
+        const totalLikes = reels.reduce((s, r) => s + (r.like_count || 0), 0);
+        const totalComments = reels.reduce((s, r) => s + (r.comments_count || 0), 0);
+        const totalViews = reels.reduce((s, r) => s + (r.view_count || 0), 0);
 
-        reels.push(...items.filter(i => i.media_product_type === "REELS"));
-        reels = reels.slice(0, 12);
-        cursor = data.media?.paging?.cursors?.after;
-      } while (reels.length < 12 && cursor);
+        rows.push({
+          Username: USER,
+          followers: formatNumber(followers),
+          mediaCount,
+          avgLikes: cnt ? Math.round(totalLikes / cnt) : 0,
+          avgComments: cnt ? Math.round(totalComments / cnt) : 0,
+          avgReach: cnt ? formatReach(totalViews / cnt) : "0",
+          engagementRate: (cnt && followers) ? (((totalLikes + totalComments) / (followers * cnt)) * 100).toFixed(2) + "%" : "0.00%"
+        });
 
-    } catch (err) {
-      const msg = (err.response?.data?.error?.message || err.message).toLowerCase();
-      if (msg.includes("limit") || msg.includes("rate limit") || err.response?.status === 403) {
-        quotaExceeded = true;
-      } else {
-        console.error(`Failed for ${USER}:`, err.message);
+        if (quotaExceeded) break;
+        await new Promise(r => setTimeout(r, 2500));
       }
-    }
 
-    const cnt = reels.length;
-    const totalLikes = reels.reduce((s, r) => s + (r.like_count || 0), 0);
-    const totalComments = reels.reduce((s, r) => s + (r.comments_count || 0), 0);
-    const totalViews = reels.reduce((s, r) => s + (r.view_count || 0), 0);
+      const writer = createCsvWriter({
+        path: outputFile,
+        header: [
+          { id: "Username", title: "Username" },
+          { id: "followers", title: "Followers" },
+          { id: "mediaCount", title: "Posts Checked" },
+          { id: "avgLikes", title: "Avg Likes" },
+          { id: "avgComments", title: "Avg Comments" },
+          { id: "avgReach", title: "Avg Reach" },
+          { id: "engagementRate", title: "Engagement Rate (%)" }
+        ]
+      });
 
-    rows.push({
-      Username: USER,
-      followers: formatNumber(followers),
-      mediaCount,
-      avgLikes: cnt ? Math.round(totalLikes / cnt) : 0,
-      avgComments: cnt ? Math.round(totalComments / cnt) : 0,
-      avgReach: cnt ? formatReach(totalViews / cnt) : "0",
-      engagementRate: cnt && followers
-        ? (((totalLikes + totalComments) / (followers * cnt)) * 100).toFixed(2) + "%"
-        : "0.00%"
+      await writer.writeRecords(rows);
+      res.setHeader("Content-Disposition", 'attachment; filename="instagram_report.csv"');
+      res.download(outputFile);
     });
-
-    if (quotaExceeded) break;
-    await new Promise(r => setTimeout(r, 2500));
-  }
-
-  const writer = createCsvWriter({
-    path: outputFile,
-    header: [
-      { id: "Username", title: "Username" },
-      { id: "followers", title: "Followers" },
-      { id: "mediaCount", title: "Posts Checked" },
-      { id: "avgLikes", title: "Avg Likes" },
-      { id: "avgComments", title: "Avg Comments" },
-      { id: "avgReach", title: "Avg Reach" },
-      { id: "engagementRate", title: "Engagement Rate (%)" }
-    ]
-  });
-  await writer.writeRecords(rows);
-
-  res.setHeader("Content-Disposition", 'attachment; filename="instagram_report.csv"');
-  res.download(outputFile);
 });
 
 app.listen(port, () => {
