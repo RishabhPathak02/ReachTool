@@ -228,8 +228,6 @@ app.get("/download/csv", async (req, res) => {
   res.download(outputFile);
 });
 
-app.use((req, res) => res.status(404).render("404", { title: "Page Not Found" }));
-
 app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}`);
 });
