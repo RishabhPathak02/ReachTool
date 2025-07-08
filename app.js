@@ -5,7 +5,9 @@ const methodOverride = require("method-override");
 const ejsMate = require("ejs-mate");
 const http = require("http");
 const { Server } = require("socket.io");
+const axios = require("axios");
 
+// Route Imports
 const uploadRoutes = require("./routes/upload");
 const instagramRoutes = require("./routes/instagram");
 const createDownloadRoutes = require("./routes/downloadCsv");
@@ -38,17 +40,26 @@ app.use("/feature/celebrities", celebsRoutes);
 app.use("/instagram", instagramRoutes);
 app.use("/download/csv", createDownloadRoutes(io));
 
-// 404 Handler
-// app.use((req, res) => {
-//   res.status(404).render("404", { title: "Page Not Found" });
-// });
+// 404 Handler 
+app.use((req, res) => {
+  res.status(404).send("404 Page Not Found");
+});
+
+// Global Error Handler
 app.use((err, req, res, next) => {
-  console.error("Unhandled Error:", err.stack);
+  console.error(" Unhandled Error:", err.stack);
   res.status(500).send("Something broke!");
 });
 
 // Server Listen
 const PORT = process.env.PORT || 8080;
 server.listen(PORT, () => {
-  console.log(`Server running: http://localhost:${PORT}`);
+  console.log(` Server running on PORT ${PORT}`);
 });
+
+// Keep-Alive to Prevent Sleep (Render Free Plan)
+setInterval(() => {
+  axios.get("https://reachtool.onrender.com")
+    .then(() => console.log("Keep-alive ping sent"))
+    .catch(err => console.error("Keep-alive error:", err.message));
+}, 5 * 60 * 1000);

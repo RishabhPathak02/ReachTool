@@ -14,7 +14,7 @@ module.exports = (io) => {
     const igBusinessAccountId = process.env.IGBUSSINESS_ID;
     const accessToken = process.env.ACCESS_TOKEN_SECRET;
 
-    // ✅ Get the latest uploaded CSV file from uploads
+    // Get the latest uploaded CSV file from uploads
     const files = fs.readdirSync(UPLOAD_DIR).filter(f => f.endsWith('.csv'));
     if (files.length === 0) return res.status(400).send("❗No CSV file uploaded. Please upload first.");
 
