@@ -42,6 +42,10 @@ app.use("/download/csv", createDownloadRoutes(io));
 // app.use((req, res) => {
 //   res.status(404).render("404", { title: "Page Not Found" });
 // });
+app.use((err, req, res, next) => {
+  console.error("Unhandled Error:", err.stack);
+  res.status(500).send("Something broke!");
+});
 
 // Server Listen
 const PORT = process.env.PORT || 3000;
