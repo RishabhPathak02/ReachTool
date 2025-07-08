@@ -4,32 +4,85 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title><%= title %></title>
-  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+
+  <style>
+    body {
+      background: linear-gradient(to bottom right, #c7d2fe, #e9d5ff, #fbcfe8);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(10px);
+      border-radius: 2rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+      padding: 50px;
+      width: 100%;
+      max-width: 700px;
+      text-align: center;
+    }
+
+    .btn-custom {
+      padding: 14px 28px;
+      font-size: 1.1rem;
+      border-radius: 50px;
+      font-weight: 600;
+    }
+
+    @media (max-width: 576px) {
+      .glass-card {
+        padding: 30px;
+      }
+      h1 {
+        font-size: 1.6rem;
+      }
+      .btn-custom {
+        padding: 12px 20px;
+        font-size: 1rem;
+      }
+    }
+  </style>
 </head>
-<body class="bg-gradient-to-br from-indigo-200 via-purple-200 to-pink-200 min-h-screen flex items-center justify-center p-4">
+<body>
 
-  <div class="bg-white/30 backdrop-blur-md p-8 rounded-2xl shadow-xl w-full max-w-lg text-center">
-    <h1 class="text-3xl font-bold text-gray-800 mb-6"><%= title %></h1>
+  <div class="container-fluid d-flex align-items-center justify-content-center min-vh-100">
+    <div class="glass-card">
 
-    <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data" class="space-y-4">
-      <div class="text-left">
-        <label for="f1" class="block mb-1 text-gray-700 font-medium">Upload File</label>
-        <input type="file" name="file" id="f1" class="block w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 p-2" required />
-        <p class="mt-1 text-sm text-gray-500">Only .csv files are allowed.</p>
+      <h1 class="mb-5 fw-bold text-dark fs-2"><%= title %></h1>
+
+      <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data">
+        <div class="mb-4 text-start">
+          <label for="f1" class="form-label fw-semibold text-dark">Upload File</label>
+          <input type="file" name="file" id="f1" class="form-control form-control-lg rounded-pill" required>
+          <div class="form-text">Only .csv files are allowed.</div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-custom w-100">
+          <i class="fas fa-upload me-2"></i> Upload
+        </button>
+      </form>
+
+      <div class="mt-4">
+        <a href="/" class="btn btn-light btn-custom">
+          <i class="fas fa-home me-2"></i> Home
+        </a>
       </div>
 
-      <button type="submit" class="w-full py-3 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white font-semibold transition">
-        <i class="fas fa-upload mr-2"></i> Upload
-      </button>
-    </form>
-
-    <div class="mt-6">
-      <a href="/" class="inline-block px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium">
-        <i class="fas fa-home mr-2"></i> Home
-      </a>
     </div>
   </div>
 
-  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+  <!-- Bootstrap 5 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 </body>
 </html>
