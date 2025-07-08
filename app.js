@@ -54,7 +54,7 @@ app.use((err, req, res, next) => {
 // Server Listen
 const PORT = process.env.PORT || 8080;
 server.listen(PORT, () => {
-  console.log(` Server running on PORT ${PORT}`);
+  console.log(`Server running: http://localhost:${PORT} OR https://reachtool.onrender.com`);
 });
 
 // Keep-Alive to Prevent Sleep (Render Free Plan)
