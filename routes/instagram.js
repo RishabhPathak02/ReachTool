@@ -52,11 +52,11 @@ router.get('/:username', async (req, res) => {
     const totalLikes = reels.reduce((sum, reel) => sum + (reel.like_count || 0), 0);
     const totalComments = reels.reduce((sum, reel) => sum + (reel.comments_count || 0), 0);
     const totalViews = reels.reduce((sum, reel) => sum + (reel.view_count || 0), 0);
-
-    const avgLikes = Math.round(totalLikes / reels.length);
-    const avgComments = Math.round(totalComments / reels.length);
-    const avgReach = formatReach(totalViews / reels.length);
-    const engagement = followers_count > 0 ? ((totalLikes + totalComments) / (followers_count * reels.length) * 100).toFixed(2) : '0.00';
+    const cnt = reels.length ;
+    const avgLikes = cnt ? Math.round(totalLikes / cnt) : 0 ;
+    const avgComments = cnt ? Math.round(totalComments / cnt) : 0 ;
+    const avgReach = cnt ? formatReach(totalViews / cnt ) : '0';
+    const engagement = followers_count > 0 ? ((totalLikes + totalComments) / (followers_count * cnt) * 100).toFixed(2) +'%': '0.00%';
 //log for debugging
     console.log(`Processed ${reels.length} reels for user: ${username}`);
     console.log(`Followers: ${followers_count}, Media Count: ${media_count}`);
