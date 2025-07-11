@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Instagram Reach & Engagement Calculator Tool" />
   <title><%= title %></title>
 
   <!-- Bootstrap CSS -->
@@ -16,6 +17,7 @@
       align-items: center;
       justify-content: center;
       padding: 20px;
+      font-family: 'Segoe UI', Arial, sans-serif;
     }
 
     .glass-card {
@@ -34,6 +36,7 @@
       font-size: 1.1rem;
       border-radius: 50px;
       font-weight: 600;
+      min-width: 180px;
     }
 
     .progress-bar-custom {
@@ -53,10 +56,12 @@
       .btn-custom {
         padding: 12px 20px;
         font-size: 1rem;
+        min-width: auto;
       }
     }
   </style>
 </head>
+
 <body>
 
   <div class="glass-card">
@@ -64,9 +69,11 @@
     <h1 class="mb-5 fw-bold text-dark fs-2"><%= title %></h1>
 
     <div class="d-flex flex-column flex-md-row justify-content-center align-items-center gap-4 mb-5">
-      <a href="/upload" class="btn btn-primary btn-custom">Upload Feature</a>
-      <a href="/feature/celebrities" class="btn btn-success btn-custom">View Celebs Data</a>
-      <button id="downloadBtn" class="btn btn-warning btn-custom">Download Reach</button>
+      <a href="/upload" class="btn btn-primary btn-custom" role="button">📤 Upload Feature</a>
+      <a href="/feature/celebrities" class="btn btn-success btn-custom" role="button">👥 View Celebs Data</a>
+      <button id="downloadBtn" class="btn btn-warning btn-custom" role="button">
+        📥 Download Reach
+      </button>
     </div>
 
     <div id="progressContainer" class="progress rounded-pill mb-4 shadow-sm d-none" style="height: 36px;">
@@ -99,7 +106,10 @@
       progressContainer.classList.remove('d-none');
 
       fetch("/download/csv")
-        .then(response => response.blob())
+        .then(response => {
+          if (!response.ok) throw new Error("Server responded with error.");
+          return response.blob();
+        })
         .then(blob => {
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
@@ -112,7 +122,8 @@
           statusMessage.classList.remove('d-none');
         })
         .catch(err => {
-          alert("Download failed: " + err.message);
+          statusMessage.innerText = "❗ Download failed: " + err.message;
+          statusMessage.classList.remove('d-none');
         })
         .finally(() => {
           downloadBtn.disabled = false;

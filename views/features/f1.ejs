@@ -8,8 +8,8 @@
   <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
-  <!-- Font Awesome -->
-  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+  <!-- Font Awesome (Updated to Kit or CDN CSS for better performance) -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" integrity="sha512-papvvm13uVnDz8q1E/Cz9QZK9d0cZ4ex+SjaWd7i/BVZmtv68f4uY25Ggf96YJz4p6A+qEfq/UlEz8vB2n7z7Q==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
   <style>
     body {
@@ -60,21 +60,21 @@
 
       <h1 class="mb-5 fw-bold text-dark fs-2"><%= title %></h1>
 
-      <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data">
+      <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data" novalidate>
         <div class="mb-4 text-start">
           <label for="f1" class="form-label fw-semibold text-dark">Upload File</label>
-          <input type="file" name="file" id="f1" class="form-control form-control-lg rounded-pill" required>
+          <input type="file" name="file" id="f1" class="form-control form-control-lg rounded-pill" accept=".csv" required>
           <div class="form-text">Only .csv files are allowed.</div>
         </div>
 
         <button type="submit" class="btn btn-primary btn-custom w-100">
-          <i class="fas fa-upload me-2"></i> Upload
+          <i class="fas fa-upload me-2" aria-hidden="true"></i> Upload
         </button>
       </form>
 
       <div class="mt-4">
         <a href="/" class="btn btn-light btn-custom">
-          <i class="fas fa-home me-2"></i> Home
+          <i class="fas fa-home me-2" aria-hidden="true"></i> Home
         </a>
       </div>
 
